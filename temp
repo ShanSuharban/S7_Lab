@@ -1,0 +1,311 @@
+#include <stdio.h>
+#include <ctype.h>
+
+char p[10][10];
+int n;
+
+void first(char c)
+{
+    int i;
+    for (i = 0; i < n; i++)
+        if (p[i][0] == c) {
+            char x = p[i][2];
+            if (!isupper(x))
+                printf("%c ", x);
+            else
+                first(x);
+        }
+}
+
+void follow(char c)
+{
+    int i, j;
+    if (p[0][0] == c)
+        printf("$ ");
+
+    for (i = 0; i < n; i++)
+        for (j = 2; p[i][j]; j++)
+            if (p[i][j] == c) {
+                char x = p[i][j + 1];
+                if (x && !isupper(x))
+                    printf("%c ", x);
+                else if (x)
+                    first(x);
+                else if (p[i][0] != c)
+                    follow(p[i][0]);
+            }
+}
+
+
+
+int main()
+{
+    char c;
+    int i;
+
+    printf("Enter number of productions: ");
+    scanf("%d", &n);
+
+    printf("Enter productions (e.g. S=AB):\n");
+    for (i = 0; i < n; i++)
+        scanf("%s", p[i]);
+
+    do {
+        printf("\nEnter non-terminal (0 to stop): ");
+        scanf(" %c", &c);
+
+        if (c == '0')
+            break;
+
+        printf("FIRST(%c) = { ", c);
+        first(c);
+        printf("}\n");
+
+        printf("FOLLOW(%c) = { ", c);
+        follow(c);
+        printf("}\n");
+
+    } while (1);
+
+    return 0;
+}
+
+______
+
+#include <stdio.h>
+#include <ctype.h>
+
+int n;
+char prod[10][20];
+
+void input(){
+	int i;
+	printf("enter the no of productions:");
+	scanf("%d" ,&n);
+	printf("enter %d productions =\n",n);
+	for(i=0 ;i<n ;i++)
+		scanf("%s",prod[i]);
+}
+
+
+void replace(char c ,char num, int no){
+	int i;
+	for(i=no+1;i<n;i++)
+	{
+		int j=2;
+		if(prod[i][0]==c)
+		break;
+		while(prod[i][j]!='\0'){
+			if(prod[i][j]==c){
+				prod[i][j]=num;
+				break;
+ 			}
+		j++;
+ 		}
+	}
+}
+
+
+void check()
+{
+	int i;
+	for(i=0;i<n;i++)
+ 	{
+		if(isdigit(prod[i][2]) && prod[i][3]=='\0')
+ 		{
+ 			replace(prod[i][0],prod[i][2],i);
+ 		}
+ 	}
+}
+
+void display()
+{
+	printf("optimized code:\n");
+	for(int i=0;i<n;i++)
+	{
+ 		printf("%s\n",prod[i]);
+ 	}
+}
+
+void main()
+{
+ 	input();
+ 	check();
+ 	display();
+}
+
+
+------
+
+#include <stdio.h>
+#include <string.h>
+
+int main()
+{
+    char stack[50] = "$", input[50];
+    int top = 0, i = 0;
+
+    printf("SHIFT REDUCE PARSER\n");
+    printf("Grammar: E->E+E, E->E/E, E->E*E, E->a|b\n");
+    printf("Enter the input string: ");
+    scanf("%49s", input);
+
+    strcat(input, "$");
+
+    printf("\n%-15s %-15s %s\n", "Stack", "Input", "Action");
+
+    while (1)
+    {
+        if (top == 1 && stack[1] == 'E' && input[i] == '$')
+        {
+            printf("%-15s %-15s ACCEPT\n", stack, input + i);
+            break;
+        }
+
+        if (stack[top] == 'a' || stack[top] == 'b')
+        {
+            char c = stack[top];
+            stack[top] = 'E';
+            stack[top + 1] = '\0';
+            printf("%-15s %-15s REDUCE E->%c\n",
+                   stack, input + i, c);
+        }
+        else if (top >= 2 && stack[top] == 'E' &&
+                stack[top - 2] == 'E' &&
+                (stack[top - 1] == '+' ||
+                 stack[top - 1] == '*' ||
+                 stack[top - 1] == '/'))
+        {
+            char op = stack[top - 1];
+            top -= 2;
+            stack[top] = 'E';
+            stack[top + 1] = '\0';
+            printf("%-15s %-15s REDUCE E->E%cE\n",
+                   stack, input + i, op);
+        }
+        else if (input[i] != '$')
+        {
+            stack[++top] = input[i];
+            stack[top + 1] = '\0';
+            printf("%-15s %-15s SHIFT %c\n",
+                   stack, input + i + 1, input[i]);
+            i++;
+        }
+        else
+        {
+            printf("%-15s %-15s REJECT\n", stack, input + i);
+            break;
+        }
+    }
+
+    return 0;
+}
+
+---
+
+#include <stdio.h>
+#include <string.h>
+
+char stack[100], input[100];
+int top = -1, ip = 0;
+
+char table[4][4] = {
+    {'-', '>', '>', '>'},
+    {'<', '>', '<', '>'},
+    {'<', '>', '>', '>'},
+    {'<', '<', '<', '='}
+};
+
+char terminals[] = {'i', '+', '*', '$'};
+
+int indexOf(char c)
+{
+    for (int i = 0; i < 4; i++)
+        if (terminals[i] == c)
+            return i;
+    return -1;
+}
+
+char topTerminal()
+{
+    for (int i = top; i >= 0; i--)
+        if (indexOf(stack[i]) != -1)
+            return stack[i];
+    return '$';
+}
+
+void reduce()
+{
+    if (stack[top] == 'i') {
+        stack[top] = 'E';
+    }
+    else if (top >= 2 &&
+             stack[top] == 'E' &&
+             (stack[top - 1] == '+' ||
+              stack[top - 1] == '*') &&
+             stack[top - 2] == 'E') {
+        stack[top - 2] = 'E';
+        top -= 2;
+    }
+    else {
+        printf("\nString is rejected\n");
+        top = -1;
+        return;
+    }
+}
+
+int main()
+{
+    printf("Enter the input string (append with $): ");
+    scanf("%99s", input);
+
+    stack[++top] = '$';
+
+    printf("\n%-15s %-15s %s\n",
+           "STACK", "INPUT STRING", "ACTION");
+
+    while (top >= 0) {
+        printf("%-15s %-15s ",
+               stack, input + ip);
+
+        if (stack[0] == '$' &&
+            top == 1 && stack[1] == 'E' &&
+            input[ip] == '$') {
+            printf("String is accepted\n");
+            return 0;
+        }
+
+        char a = topTerminal();
+        char b = input[ip];
+
+        int row = indexOf(a);
+        int col = indexOf(b);
+
+        if (row == -1 || col == -1) {
+            printf("String is rejected\n");
+            return 0;
+        }
+
+        char relation = table[row][col];
+
+        if (relation == '<' || relation == '=') {
+            stack[++top] = b;
+            stack[top + 1] = '\0';
+            ip++;
+            printf("Shift\n");
+        }
+        else if (relation == '>') {
+            reduce();
+            if (top == -1)
+                return 0;
+            stack[top + 1] = '\0';
+            printf("Reduce\n");
+        }
+        else {
+            printf("String is rejected\n");
+            return 0;
+        }
+    }
+
+    return 0;
+}
